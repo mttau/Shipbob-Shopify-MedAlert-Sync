@@ -1,26 +1,20 @@
 const express = require('express');
 require('dotenv').config();
 
+const { handleShipBobWebhook } = require('./services/webhookHandler');
+
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Simple test route
+// Webhook endpoint for ShipBob
+app.post('/webhooks/shipbob/order-shipped', handleShipBobWebhook);
+
 app.get('/', (req, res) => {
-  res.json({ message: 'ShipBob to Shopify Sync Service is running' });
+  res.send('✅ MedAlert webhook service is running!');
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
-
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
