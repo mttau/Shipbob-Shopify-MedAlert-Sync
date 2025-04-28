@@ -21,7 +21,7 @@ router.get('/oauth/callback', async (req, res) => {
   if (!code) return res.status(400).send('No code provided');
 
   try {
-    const tokenResponse = await axios.post('https://api.shipbob.com/oauth/token', {
+    const tokenResponse = await axios.post('https://auth.shipbob.com/connect/token', {
       grant_type: 'authorization_code',
       code,
       client_id: process.env.SHIPBOB_CLIENT_ID,
