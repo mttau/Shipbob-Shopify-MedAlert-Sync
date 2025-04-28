@@ -6,8 +6,10 @@ const router = express.Router();
 router.get('/auth/shipbob', (req, res) => {
   const clientId = process.env.SHIPBOB_CLIENT_ID;
   const redirectUri = process.env.SHIPBOB_REDIRECT_URI;
+  const scope = 'orders_read webhooks_read webhooks_write offline_access'; // add any scopes you want
+  const responseType = 'code';
 
-  const authUrl = `https://api.shipbob.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  const authUrl = `https://auth.shipbob.com/connect/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
 
   res.redirect(authUrl);
 });
