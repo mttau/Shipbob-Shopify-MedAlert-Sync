@@ -3,16 +3,18 @@ const axios = require('axios');
 
 async function createShipBobWebhook() {
   try {
+    const accessToken = process.env.SHIPBOB_ACCESS_TOKEN; // ✅ load from environment!
+
     const response = await axios.post(
-      'https://api.shipbob.com/2.0/webhooks',
+      'https://api.shipbob.com/1.0/webhook', // ✅ Correct endpoint
       {
-        topic: 'order_shipped',
-        target_url: process.env.SHIPBOB_WEBHOOK_URL,
+        webhook_uri: process.env.SHIPBOB_WEBHOOK_URL,
+        webhook_type: 'order_shipped', // ✅ Correct field name for v1.0
         description: 'Webhook for MedAlert order_shipped'
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.SHIPBOB_PAT}`,
+          Authorization: `Bearer ${accessToken}`, // ✅ Use real OAuth token
           'Content-Type': 'application/json'
         }
       }
@@ -27,4 +29,3 @@ async function createShipBobWebhook() {
 }
 
 createShipBobWebhook();
-
