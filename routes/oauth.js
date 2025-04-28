@@ -9,7 +9,7 @@ router.get('/auth/shipbob', (req, res) => {
   const scope = 'orders_read webhooks_read webhooks_write offline_access'; // add any scopes you want
   const responseType = 'code';
 
-  const authUrl = `https://auth.shipbob.com/connect/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+  const authUrl = `https://auth.shipbob.com/connect/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_mode=query`;
 
   res.redirect(authUrl);
 });
