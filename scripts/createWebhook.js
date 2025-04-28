@@ -3,18 +3,22 @@ const axios = require('axios');
 
 async function createShipBobWebhook() {
   try {
-    const accessToken = process.env.SHIPBOB_ACCESS_TOKEN; // ✅ load from environment!
+    const accessToken = process.env.SHIPBOB_ACCESS_TOKEN;
+
+    if (!accessToken) {
+      throw new Error('Missing ShipBob Access Token!');
+    }
 
     const response = await axios.post(
-      'https://api.shipbob.com/1.0/webhook', // ✅ Correct endpoint
+      'https://api.shipbob.com/1.0/webhook',
       {
-        webhook_uri: process.env.SHIPBOB_WEBHOOK_URL,
-        webhook_type: 'order_shipped', // ✅ Correct field name for v1.0
-        description: 'Webhook for MedAlert order_shipped'
+        Topic: 'order_shipped', // ✅ Capital T
+        SubscriptionUrl: process.env.SHIPBOB_WEBHOOK_URL, // ✅ Capital S
+        Description: 'Webhook for MedAlert order_shipped'
       },
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`, // ✅ Use real OAuth token
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         }
       }
