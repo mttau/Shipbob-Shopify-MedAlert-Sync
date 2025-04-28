@@ -1,3 +1,4 @@
+const qs = require('qs');
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
@@ -8,8 +9,9 @@ router.get('/auth/shipbob', (req, res) => {
   const redirectUri = process.env.SHIPBOB_REDIRECT_URI;
   const scope = 'orders_read webhooks_read webhooks_write offline_access'; // add any scopes you want
   const responseType = 'code';
+  const responseMode = 'query'; // 👈 Important for ShipBob OAuth
 
-  const authUrl = `https://auth.shipbob.com/connect/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_mode=query`;
+  const authUrl = `https://auth.shipbob.com/connect/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_mode=${responseMode}`;
 
   res.redirect(authUrl);
 });
@@ -21,26 +23,27 @@ router.get('/oauth/callback', async (req, res) => {
   if (!code) return res.status(400).send('No code provided');
 
   try {
-    const tokenResponse = await axios.post('https://auth.shipbob.com/connect/token', {
+    const data = qs.stringify({  // ✅ Use qs to format the body
       grant_type: 'authorization_code',
       code,
       client_id: process.env.SHIPBOB_CLIENT_ID,
       client_secret: process.env.SHIPBOB_CLIENT_SECRET,
       redirect_uri: process.env.SHIPBOB_REDIRECT_URI
-    }, {
+    });
+
+    const tokenResponse = await axios.post('https://auth.shipbob.com/connect/token', data, {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded' // ✅ Critical header
       }
     });
 
     const accessToken = tokenResponse.data.access_token;
-
     console.log('✅ ShipBob Access Token:', accessToken);
 
     res.send('OAuth success! Access token logged to server console.');
   } catch (error) {
-    console.error('OAuth token error:', error.response?.data || error.message);
-    res.status(500).send('OAuth failed');
+    console.error('❌ Full OAuth Error:', error.response?.data || error.message);
+    res.status(500).send(`OAuth failed: ${error.response?.data?.error_description || error.message}`);
   }
 });
 
