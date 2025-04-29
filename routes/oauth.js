@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const qs = require('qs');
 const express = require('express');
 const axios = require('axios');
@@ -7,9 +9,9 @@ const router = express.Router();
 router.get('/auth/shipbob', (req, res) => {
   const clientId = process.env.SHIPBOB_CLIENT_ID;
   const redirectUri = process.env.SHIPBOB_REDIRECT_URI;
-  const scope = 'orders_read webhooks_read webhooks_write offline_access'; // add any scopes you want
+  const scope = 'orders_read webhooks_read webhooks_write offline_access';
   const responseType = 'code';
-  const responseMode = 'query'; // 👈 Important for ShipBob OAuth
+  const responseMode = 'query';
 
   const authUrl = `https://auth.shipbob.com/connect/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_mode=${responseMode}`;
 
@@ -23,7 +25,7 @@ router.get('/oauth/callback', async (req, res) => {
   if (!code) return res.status(400).send('No code provided');
 
   try {
-    const data = qs.stringify({  // ✅ Use qs to format the body
+    const data = qs.stringify({
       grant_type: 'authorization_code',
       code,
       client_id: process.env.SHIPBOB_CLIENT_ID,
@@ -33,17 +35,26 @@ router.get('/oauth/callback', async (req, res) => {
 
     const tokenResponse = await axios.post('https://auth.shipbob.com/connect/token', data, {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded' // ✅ Critical header
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
 
-    const accessToken = tokenResponse.data.access_token;
-    console.log('✅ ShipBob Access Token:', accessToken);
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-    res.send('OAuth success! Access token logged to server console.');
+    const tokenData = {
+      access_token,
+      refresh_token,
+      expires_at: Date.now() + expires_in * 1000
+    };
+
+    const tokenPath = path.join(__dirname, '../../tokens.json');
+    fs.writeFileSync(tokenPath, JSON.stringify(tokenData, null, 2));
+
+    console.log('✅ OAuth tokens saved to tokens.json');
+    res.send('OAuth success! Tokens saved to disk.');
   } catch (error) {
-    console.error('❌ Full OAuth Error:', error.response?.data || error.message);
-    res.status(500).send(`OAuth failed: ${error.response?.data?.error_description || error.message}`);
+    console.error('OAuth token error:', error.response?.data || error.message);
+    res.status(500).send('OAuth failed');
   }
 });
 

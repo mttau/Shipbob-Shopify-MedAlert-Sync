@@ -1,9 +1,10 @@
 require('dotenv').config();
 const axios = require('axios');
+const { getAccessToken } = require('../utils/tokenManager'); // ✅ Move to top
 
 async function createShipBobWebhook() {
   try {
-    const accessToken = process.env.SHIPBOB_ACCESS_TOKEN;
+    const accessToken = await getAccessToken();
     const webhookUrl = process.env.SHIPBOB_WEBHOOK_URL;
 
     if (!accessToken) {
@@ -15,8 +16,8 @@ async function createShipBobWebhook() {
     }
 
     const body = {
-      topic: 'order_shipped', // ✅ lowercase, snake_case
-      subscription_url: webhookUrl, // ✅ lowercase, snake_case
+      topic: 'order_shipped',
+      subscription_url: webhookUrl
     };
 
     const response = await axios.post(
@@ -25,7 +26,7 @@ async function createShipBobWebhook() {
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json-patch+json' // ✅ match their requirement
+          'Content-Type': 'application/json-patch+json'
         }
       }
     );
