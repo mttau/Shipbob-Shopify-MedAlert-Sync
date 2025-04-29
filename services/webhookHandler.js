@@ -1,5 +1,5 @@
-const { updateMetafield } = require('../shopify');
-const { getWatchRegistrationCode } = require('../mongo');
+const { updateMetafield } = require('./shopify');
+const { getWatchRegistrationCode } = require('./mongo');
 const fs = require('fs');
 const path = require('path');
 
