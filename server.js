@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 const express = require('express');
 require('dotenv').config();
 
@@ -21,4 +24,17 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
+});
+
+app.get('/logs', (req, res) => {
+  const logPath = path.join(__dirname, 'logs/webhook.log');
+
+  if (!fs.existsSync(logPath)) {
+    return res.status(404).send('Log file not found.');
+  }
+
+  const logContent = fs.readFileSync(logPath, 'utf-8');
+
+  res.set('Content-Type', 'text/plain');
+  res.send(logContent);
 });
