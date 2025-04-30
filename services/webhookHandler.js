@@ -3,44 +3,50 @@ const { getWatchRegistrationCode } = require('./mongo');
 const fs = require('fs');
 const path = require('path');
 
+// Ensure logs folder exists
+const logDir = path.join(__dirname, '../logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir);
+}
+
 function log(message) {
   const timestamp = new Date().toISOString();
   const line = `[${timestamp}] ${message}\n`;
   console.log(line.trim());
 
-  const logFile = path.join(__dirname, '../logs/webhook.log');
+  const logFile = path.join(logDir, 'webhook.log');
   fs.appendFileSync(logFile, line);
 }
 
 async function handleShipBobWebhook(req, res) {
   try {
-    const { orderId, products } = req.body;
+    const payload = req.body;
+    log(`📦 Webhook received:\n${JSON.stringify(payload, null, 2)}`);
 
-    log(`📦 Webhook received:\n${JSON.stringify(req.body, null, 2)}`);
-
-    if (!orderId || !products || products.length === 0) {
-      log('❌ Missing orderId or product data');
-      return res.status(400).json({ error: 'Missing orderId or product data' });
+    const orderId = payload.reference_id;
+    if (!orderId) {
+      log('❌ No order reference_id found in webhook payload');
+      return res.status(400).json({ error: 'Missing order reference_id' });
     }
 
     let serialNumber = null;
 
-    for (const product of products) {
-      const inventoryItems = product.inventory_items || [];
-
-      for (const item of inventoryItems) {
-        if (item.serial_numbers && item.serial_numbers.length > 0) {
-          serialNumber = item.serial_numbers[0];
-          break;
+    for (const shipment of payload.shipments || []) {
+      for (const product of shipment.products || []) {
+        for (const item of product.inventory_items || []) {
+          if (item.serial_numbers && item.serial_numbers.length > 0) {
+            serialNumber = item.serial_numbers[0];
+            break;
+          }
         }
+        if (serialNumber) break;
       }
-
       if (serialNumber) break;
     }
 
     if (!serialNumber) {
-      log('❌ No serial number found in payload');
-      return res.status(400).json({ error: 'No serial number found in payload' });
+      log('❌ No serial number found in webhook payload');
+      return res.status(400).json({ error: 'No serial number found' });
     }
 
     log(`🔧 IMEI Found: ${serialNumber}`);
