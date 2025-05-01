@@ -6,7 +6,7 @@ async function getWatchRegistrationCode(imei) {
     await client.connect();
 
     const db = client.db();
-    const watches = db.collection('watches');
+    const watches = db.collection('watchdata');
 
     const result = await watches.findOne({ imei: String(imei) }); // ✅ Fix
 
