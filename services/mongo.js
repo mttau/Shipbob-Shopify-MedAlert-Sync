@@ -12,7 +12,13 @@ async function getWatchRegistrationCode(imei) {
 
     await client.close();
 
-    return result?.registrationCode || null;
+    if (!result) return null;
+
+    return {
+      registrationCode: result.registrationCode || null,
+      simSerialNumber: result.simSerialNumber || null,
+      simICCID: result.simICCID || null
+    };
   } catch (error) {
     console.error('MongoDB Error:', error);
     return null;

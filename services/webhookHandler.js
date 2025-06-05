@@ -54,14 +54,31 @@ async function handleShipBobWebhook(req, res) {
     await updateMetafield(orderId, 'imei', serialNumber);
     log(`✅ IMEI metafield added`);
 
-    const regCode = await getWatchRegistrationCode(serialNumber);
+    const watchData = await getWatchRegistrationCode(serialNumber);
 
-    if (!regCode) {
-      log(`⚠️ No registration code found for IMEI: ${serialNumber}`);
+    if (!watchData) {
+      log(`⚠️ No watch data found for IMEI: ${serialNumber}`);
     } else {
-      log(`🔧 Adding registration code to Shopify: ${regCode}`);
-      await updateMetafield(orderId, 'watch_registration_code', regCode);
-      log('✅ Registration code added');
+      // Update registration code if available
+      if (watchData.registrationCode) {
+        log(`🔧 Adding registration code to Shopify: ${watchData.registrationCode}`);
+        await updateMetafield(orderId, 'watch_registration_code', watchData.registrationCode);
+        log('✅ Registration code added');
+      }
+
+      // Update SIM serial number if available
+      if (watchData.simSerialNumber) {
+        log(`🔧 Adding SIM serial number to Shopify: ${watchData.simSerialNumber}`);
+        await updateMetafield(orderId, 'sim_serial_number', watchData.simSerialNumber);
+        log('✅ SIM serial number added');
+      }
+
+      // Update SIM ICCID if available
+      if (watchData.simICCID) {
+        log(`🔧 Adding SIM ICCID to Shopify: ${watchData.simICCID}`);
+        await updateMetafield(orderId, 'sim_iccid', watchData.simICCID);
+        log('✅ SIM ICCID added');
+      }
     }
 
     log(`✅ Webhook for order ${orderId} processed successfully.\n`);
