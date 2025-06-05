@@ -1,5 +1,6 @@
 const { updateMetafield } = require('./shopify');
 const { getWatchRegistrationCode } = require('./mongo');
+const { getDeviceDetails, JasperApiError } = require('./jasper');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,6 +17,34 @@ function log(message) {
 
   const logFile = path.join(logDir, 'webhook.log');
   fs.appendFileSync(logFile, line);
+}
+
+async function updateOrderMetafields(orderId, watchData) {
+  const updates = [];
+  
+  // Update registration code if available
+  if (watchData.registrationCode) {
+    updates.push(updateMetafield(orderId, 'watch_registration_code', watchData.registrationCode)
+      .then(() => log('✅ Registration code added'))
+      .catch(err => log(`❌ Failed to update registration code: ${err.message}`)));
+  }
+
+  // Update SIM serial number if available
+  if (watchData.simSerialNumber) {
+    updates.push(updateMetafield(orderId, 'sim_serial_number', watchData.simSerialNumber)
+      .then(() => log('✅ SIM serial number added'))
+      .catch(err => log(`❌ Failed to update SIM serial number: ${err.message}`)));
+  }
+
+  // Update SIM ICCID if available
+  if (watchData.simICCID) {
+    updates.push(updateMetafield(orderId, 'sim_iccid', watchData.simICCID)
+      .then(() => log('✅ SIM ICCID added'))
+      .catch(err => log(`❌ Failed to update SIM ICCID: ${err.message}`)));
+  }
+
+  // Wait for all metafield updates to complete
+  await Promise.all(updates);
 }
 
 async function handleShipBobWebhook(req, res) {
@@ -59,25 +88,29 @@ async function handleShipBobWebhook(req, res) {
     if (!watchData) {
       log(`⚠️ No watch data found for IMEI: ${serialNumber}`);
     } else {
-      // Update registration code if available
-      if (watchData.registrationCode) {
-        log(`🔧 Adding registration code to Shopify: ${watchData.registrationCode}`);
-        await updateMetafield(orderId, 'watch_registration_code', watchData.registrationCode);
-        log('✅ Registration code added');
-      }
+      // Update all metafields from MongoDB data
+      await updateOrderMetafields(orderId, watchData);
 
-      // Update SIM serial number if available
-      if (watchData.simSerialNumber) {
-        log(`🔧 Adding SIM serial number to Shopify: ${watchData.simSerialNumber}`);
-        await updateMetafield(orderId, 'sim_serial_number', watchData.simSerialNumber);
-        log('✅ SIM serial number added');
-      }
-
-      // Update SIM ICCID if available
+      // Try to get SIM phone number from Jasper if we have an ICCID
       if (watchData.simICCID) {
-        log(`🔧 Adding SIM ICCID to Shopify: ${watchData.simICCID}`);
-        await updateMetafield(orderId, 'sim_iccid', watchData.simICCID);
-        log('✅ SIM ICCID added');
+        try {
+          const jasperResult = await getDeviceDetails(watchData.simICCID);
+          
+          if (jasperResult.success) {
+            log(`🔧 Adding SIM phone number to Shopify: ${jasperResult.msisdn}`);
+            await updateMetafield(orderId, 'sim_phone_number', jasperResult.msisdn);
+            log('✅ SIM phone number added');
+          } else {
+            log(`⚠️ ${jasperResult.error}`);
+          }
+        } catch (error) {
+          if (error instanceof JasperApiError) {
+            log(`⚠️ Jasper API Error (${error.type}): ${error.message}`);
+          } else {
+            log(`⚠️ Unexpected error getting SIM phone number: ${error.message}`);
+          }
+          // Continue processing - don't let Jasper errors affect the rest of the flow
+        }
       }
     }
 
