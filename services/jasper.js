@@ -48,9 +48,14 @@ async function getDeviceDetails(iccid) {
             };
         }
 
+        // Add '+' prefix to the phone number if it doesn't already have one
+        const phoneNumber = response.data.msisdn.startsWith('+') 
+            ? response.data.msisdn 
+            : `+${response.data.msisdn}`;
+
         return {
             success: true,
-            msisdn: response.data.msisdn
+            msisdn: phoneNumber
         };
 
     } catch (error) {
